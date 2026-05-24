@@ -1,5 +1,8 @@
 # shcripts
 
+> Read [this chat](https://claude.ai/chat/246f3a9d-929b-48b4-8124-0eb8fd1a8c50).
+> On how to download and setup google drive and notion backup scripts.
+
 A modern launcher for organizing and running shell scripts. Categorized by folder, tracks run history with last 3 executions, opens scripts in terminal windows, idle notifications via systemd.
 
 ## Setup (2 minutes)
