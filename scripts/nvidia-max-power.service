@@ -1,0 +1,11 @@
+[Unit]
+Description=Max NVIDIA GPU Power Savings
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/nvidia-max-power.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

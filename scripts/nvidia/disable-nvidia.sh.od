@@ -1,0 +1,98 @@
+#!/bin/bash
+# ==========================================================
+# disable-nvidia.sh
+# Full NVIDIA GPU disable script for Ubuntu dual-GPU laptops
+# Based on ChatGPT guide: https://chatgpt.com/c/68e93ba8-5f54-8321-91d1-c3673dbfd79b
+#
+# This script switches to integrated graphics, disables and masks
+# NVIDIA-related services, blacklists NVIDIA kernel modules, rebuilds
+# initramfs, and guides you through verification.
+#
+# To revert: 
+#   sudo prime-select nvidia
+#   sudo rm /etc/modprobe.d/blacklist-nvidia.conf
+#   sudo update-initramfs -u
+#   sudo reboot
+# ==========================================================
+
+# Safety warning
+echo "⚠️  This script makes persistent system-level changes."
+echo "Please read each step before continuing."
+read -p "Press Enter to continue or Ctrl+C to abort..."
+
+# ==========================================================
+# 1. Switch to integrated graphics
+# ==========================================================
+# prime-select sets the active GPU profile
+# Use 'intel' for Intel iGPU, 'amd' for AMD iGPU
+sudo prime-select intel
+
+# ==========================================================
+# 2. Disable and mask NVIDIA-related services
+# ==========================================================
+# 'systemctl disable --now' stops and disables the service persistently
+# 'systemctl mask' prevents it from ever being started (links it to /dev/null)
+
+echo -e "\n>>> Checking NVIDIA-related services..."
+sudo systemctl list-units | grep nvidia || echo "(none active)"
+sudo systemctl list-unit-files | grep powerd || echo "(none found)"
+
+echo -e "\n>>> Disabling NVIDIA services..."
+disable_list=("nvidia-hibernate.service" "nvidia-powerd.service" "nvidia-max-powerd.service" "nvidia-persistenced.service" "nvidia-resume.service" "nvidia-suspend-then-hibernate.service" "nvidia-suspend.service")
+
+for serv in "${disable_list[@]}" ; do
+    sudo systemctl disable --now $serv #2>/dev/null
+    sudo systemctl mask $serv #2>/dev/null
+
+done
+#sudo systemctl disable --now nvidia-powerd.service 2>/dev/null
+#sudo systemctl disable --now nvidia-persistenced.service 2>/dev/null
+#sudo systemctl disable --now nvidia-max-power.service 2>/dev/null
+
+sudo systemctl mask nvidia-powerd.service 2>/dev/null
+
+read -p "Press Enter or Ctrl+C"
+
+# ==========================================================
+# 3. Blacklist NVIDIA kernel modules
+# ==========================================================
+# This prevents the NVIDIA drivers from being loaded at boot.
+# The tee command writes a new config file under /etc/modprobe.d/
+# > /dev/null ensures we don't print the contents on the terminal.
+
+echo -e "\n>>> Creating blacklist file for NVIDIA kernel modules at /etc/modprobe.d/blacklist-nvidia.conf..."
+sudo tee /etc/modprobe.d/blacklist-nvidia.conf > /dev/null <<'EOF'
+blacklist nvidia
+blacklist nvidia_drm
+blacklist nvidia_modeset
+blacklist nvidia_uvm
+options nvidia NVreg_DynamicPowerManagement=0x02
+EOF
+
+read -p "Press Enter or Ctrl+C"
+
+# ==========================================================
+# 4. Rebuild initramfs so changes apply at boot
+# ==========================================================
+echo -e "\n>>> Updating initramfs..."
+sudo update-initramfs -u
+
+# Optional: Verify that NVIDIA modules are excluded from the initramfs image
+KERNEL_VER=$(uname -r)
+echo -e "\n>>> Checking initramfs contents for NVIDIA modules..."
+lsinitramfs /boot/initrd.img-"$KERNEL_VER" | grep nvidia || echo "(no NVIDIA modules found — good)"
+
+read -p "Press Enter or Ctrl+C"
+
+# ==========================================================
+# 5. Reboot and verify
+# ==========================================================
+echo -e "\n✅ Done! Please reboot to apply changes."
+echo "After reboot, verify with the following commands:"
+echo "  nvidia-smi"
+echo "  lsmod | grep nvidia"
+echo "  cat /sys/bus/pci/devices/*/power/runtime_status | grep suspended"
+echo
+echo "All should indicate that NVIDIA is inactive or suspended."
+
+

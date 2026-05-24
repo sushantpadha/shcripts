@@ -1,0 +1,103 @@
+
+<<COMMENT
+"
+Got it — if your goal **right now** is to completely power off / disable the NVIDIA dGPU (so it draws **~0 W** and doesn’t appear in `nvidia-smi`), here’s a safe, reversible way to do it on Ubuntu with X11.
+
+---
+
+## ⚙️ 1️⃣ Ensure you’re on integrated graphics
+
+Make sure the system is running on the iGPU:
+
+```bash
+sudo prime-select intel
+sudo reboot
+```
+
+That ensures **Xorg runs on the iGPU** and nothing depends on the NVIDIA card.
+
+---
+
+## ⚙️ 2️⃣ After reboot: unload NVIDIA drivers
+
+Run these commands to **stop services and unload modules**:
+
+```bash
+sudo systemctl stop nvidia-persistenced.service nvidia-powerd.service
+sudo modprobe -r nvidia_drm nvidia_modeset nvidia_uvm nvidia
+```
+
+If it complains that a module is in use, make sure you’re not running any app (e.g., `nvidia-smi`, Blender, etc.) that uses it.
+
+---
+
+## ⚙️ 3️⃣ Unbind and remove the PCI device
+
+Find your GPU address:
+
+```bash
+lspci | grep -i nvidia
+```
+
+Example output:
+
+```
+01:00.0 VGA compatible controller: NVIDIA Corporation GA107M [RTX 4050 Laptop GPU]
+```
+
+Then unbind and remove it:
+
+```bash
+GPU=0000:01:00.0  # replace with your GPU PCI ID
+echo 1 | sudo tee /sys/bus/pci/devices/$GPU/remove
+```
+
+This **physically detaches the GPU from the system bus** — it disappears from `lspci`, `nvidia-smi`, and draws almost no power.
+
+---
+
+## ⚙️ 4️⃣ Confirm it's gone
+
+```bash
+lspci | grep -i nvidia
+nvidia-smi
+```
+
+Both should show nothing (or `command not found` / driver not loaded).
+
+---
+
+## ⚙️ 5️⃣ Optional: restore later
+
+To re-enable it (e.g., when you want to run Blender or CUDA):
+
+```bash
+echo 1 | sudo tee /sys/bus/pci/rescan
+sudo modprobe nvidia
+sudo systemctl start nvidia-powerd.service
+sudo prime-select on-demand
+```
+
+Then reboot if you want it permanently active again.
+
+---
+
+### ✅ Summary
+
+| Goal                   | Command                                                                                       |                                                                                                                                    |
+| ---------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Disable GPU completely | `sudo prime-select intel && sudo systemctl stop nvidia* && sudo modprobe -r nvidia* && echo 1 | sudo tee /sys/bus/pci/devices/0000:01:00.0/remove`                                                                                 |
+| Re-enable GPU          | `echo 1                                                                                       | sudo tee /sys/bus/pci/rescan && sudo modprobe nvidia && sudo systemctl start nvidia-powerd.service && sudo prime-select on-demand` |
+
+---
+
+Would you like me to give you a small pair of scripts (`disable-gpu.sh` / `enable-gpu.sh`) so you can toggle this easily?
+"
+COMMENT
+
+# https://chatgpt.com/c/68e69e4c-bcf4-8320-9798-9b4c4ff65c96
+echo 1 | sudo tee /sys/bus/pci/rescan
+sudo modprobe nvidia
+sudo systemctl start nvidia-powerd.service
+sudo prime-select on-demand
+
