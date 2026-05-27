@@ -231,6 +231,53 @@ detect_audio_bdf() {
 }
 
 # ==========================================================
+# persistent config inspection
+# ==========================================================
+
+persistent_config_locations() {
+    cat <<EOF
+
+MANUAL CLEANUP LOCATIONS
+
+Blacklist configs:
+    /etc/modprobe.d/
+    /lib/modprobe.d/
+
+udev rules:
+    /etc/udev/rules.d/
+
+GRUB config:
+    /etc/default/grub
+
+initramfs:
+    /boot/initrd.img-*
+    /etc/initramfs-tools/
+
+modules-load:
+    /etc/modules-load.d/
+
+IMPORTANT:
+    update-initramfs does NOT remove stale configs automatically.
+    Old blacklist/udev rules can keep getting embedded into
+    future initramfs builds.
+
+Useful inspection commands:
+
+    find /etc/modprobe.d /lib/modprobe.d -iname '*nvidia*'
+
+    find /etc/udev/rules.d -iname '*nvidia*'
+
+    grep -i nvidia /etc/default/grub
+
+    lsinitramfs /boot/initrd.img-\$(uname -r) | grep nvidia
+
+    find /etc/modules-load.d -type f | \\
+        xargs grep -i nvidia 2>/dev/null
+
+EOF
+}
+
+# ==========================================================
 # services
 # ==========================================================
 
@@ -371,7 +418,7 @@ status() {
     sudo fuser -v /dev/dri/* 2>/dev/null || true
     echo
 
-    info "CPU package power"
+    info "CPU package power (Press CTRL+C to stop)"
     sudo turbostat --Summary --quiet 2>/dev/null || true
     echo
 
@@ -407,7 +454,7 @@ diagnose() {
     echo
 
     info "Kernel logs"
-    dmesg | grep -iE "nvidia|nouveau|amdgpu|acpi|pci" | tail -n 100 || true
+    sudo dmesg | grep -iE "nvidia|nouveau|amdgpu|acpi|pci" | tail -n 100 || true
     echo
 
     info "Session type"
@@ -479,6 +526,17 @@ doctor() {
     info "Checking NVIDIA driver"
     modinfo nvidia 2>/dev/null | head || echo "driver missing"
     echo
+
+    info "Checking GRUB kernel args"
+    grep -i nvidia /etc/default/grub || true
+    echo
+
+    info "Checking modules-load configs"
+    find /etc/modules-load.d -type f | \
+        xargs grep -i nvidia 2>/dev/null || true
+    echo
+
+    persistent_config_locations
 }
 
 # ==========================================================
@@ -532,6 +590,23 @@ reset_mode() {
     echo "Recommended next steps:"
     echo "    $SCRIPT_NAME status"
     echo "    reboot"
+
+    echo
+    warn "If reset does NOT fix things:"
+    echo
+    echo "1. Inspect persistent configs manually:"
+    echo "       /etc/modprobe.d/"
+    echo "       /etc/udev/rules.d/"
+    echo "       /etc/default/grub"
+    echo
+    echo "2. Remove stale NVIDIA blacklist/unbind rules"
+    echo
+    echo "3. Rebuild:"
+    echo "       sudo update-initramfs -u"
+    echo "       sudo update-grub"
+    echo
+    echo "4. Reboot"
+    echo
 }
 
 # ==========================================================
@@ -771,36 +846,25 @@ USAGE:
     $SCRIPT_NAME <command>
 
 COMMANDS:
-
     MODES
         off         Disable NVIDIA aggressively
         lowpower    CUDA usable, desktop on iGPU
         full        Full NVIDIA mode
         reset       Restore sane Ubuntu defaults
-
     DIAGNOSTICS
         status      Compact system overview
         diagnose    Verbose diagnostics
         doctor      Detect broken/stale configuration
-
     DRIVER
         update      Install recommended drivers
-
-EXAMPLES:
-    $SCRIPT_NAME off
-    $SCRIPT_NAME lowpower
-    $SCRIPT_NAME status
-    $SCRIPT_NAME doctor
+    HELP
+        -h, --help  Show this help message
 
 IMPORTANT:
-    Most mode changes require reboot.
-
-RECOVERY:
-    If things become inconsistent:
-
-        1. $SCRIPT_NAME doctor
-        2. $SCRIPT_NAME reset
-        3. reboot
+  - Most mode changes require reboot.
+  - Run `doctor` to review persistent system state manually!!!
+  - If things become inconsistent:
+      Run as doctor, then reset, then reboot!
 
 EOF
 }
@@ -810,6 +874,14 @@ EOF
 # ==========================================================
 
 main() {
+
+    case "${1:-}" in
+        -h|--help|help|"")
+            usage
+            exit 0
+            ;;
+    esac
+    
     require_cmd lspci
 
     if ! gpu_present; then

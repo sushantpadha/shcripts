@@ -289,6 +289,23 @@ def scan() -> dict[str, list[ScriptMeta]]:
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+def open_terminal_in_dir(path: str):
+    if not TERMINAL_CMD:
+        return "no terminal found"
+
+    directory = str(Path(path).parent)
+
+    subprocess.Popen(
+        TERMINAL_CMD,
+        cwd=directory,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+    return None
+
+
 def open_in_editor(path: str):
     subprocess.Popen(
         [EDITOR, path],
@@ -446,6 +463,7 @@ class ShcriptsTUI(App):
         Binding("r",      "run",       "Run/Open", show=True),
         Binding("s",      "run_sudo",  "Run sudo", show=True),
         Binding("e",      "edit",      "Edit",     show=True),
+        Binding("t",      "terminal",  "Terminal", show=True),
         Binding("l",      "logs",      "Logs",     show=True),
         Binding("R",      "rescan",    "Rescan",   show=True),
         Binding("q",      "quit",      "Quit",     show=True),
@@ -656,6 +674,7 @@ class ShcriptsTUI(App):
             "[dim]r[/] run/open   "
             "[dim]s[/] sudo   "
             "[dim]e[/] edit   "
+            "[dim]t[/] terminal   "
             "[dim]l[/] logs   "
             "[dim]R[/] rescan"
         )
@@ -664,6 +683,29 @@ class ShcriptsTUI(App):
 
 
     # ── Actions ──────────────────────────────────────────────────────────────
+    def action_terminal(self):
+        s = self._selected
+
+        if not s:
+            self._update_status(
+                "select a file first",
+                "error",
+            )
+            return
+
+        err = open_terminal_in_dir(s.path)
+
+        if err:
+            self._update_status(
+                f"✗ {err}",
+                "error",
+            )
+            return
+
+        self._update_status(
+            f"🖥 opened terminal in {Path(s.path).parent}",
+            "idle",
+        )
 
     def action_run(self):
         s = self._selected

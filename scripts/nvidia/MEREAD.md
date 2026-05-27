@@ -2,6 +2,7 @@
 
 **TL;DR**
 - `runtime_status` -> is GPU electrically powered?
+- `power/control` -> is runtime PM allowed?
 - `lsmod` -> are NVIDIA kernel modules loaded?
 - `glxinfo | grep renderer` -> which GPU renders desktop?
 - these are DIFFERENT things
@@ -11,6 +12,7 @@
 1. Check GPU runtime power state:
 	```bash
 	cat /sys/bus/pci/devices/0000:01:00.0/power/runtime_status
+	cat /sys/bus/pci/devices/0000:01:00.0/power/control
 	```
 
 	Find PCI address:
@@ -20,13 +22,19 @@
 
 	Interpretation:
 	```text
-	active      -> GPU electrically powered
-	suspended   -> GPU suspended
+	runtime_status:
+	    active      -> GPU electrically powered
+	    suspended   -> GPU suspended
+
+	power/control:
+	    auto        -> runtime PM allowed
+	    on          -> never runtime suspend
 	```
 
 	Healthy idle:
 	```text
 	runtime_status = suspended
+	power/control  = auto
 	renderer       = AMD/intel
 	total power    ~5-12W
 	```
@@ -75,6 +83,7 @@
 	glxinfo | grep renderer
 	nvidia-smi
 	cat /sys/bus/pci/devices/0000:01:00.0/power/runtime_status
+	cat /sys/bus/pci/devices/0000:01:00.0/power/control
 	```
 
 	Interpretation:
@@ -89,6 +98,10 @@
 	runtime_status:
 	    active                 -> GPU powered
 	    suspended              -> GPU suspended
+
+	power/control:
+	    auto                   -> runtime PM enabled
+	    on                     -> runtime PM disabled
 	```
 
 8. Check graphics users if GPU refuses to suspend:
@@ -132,7 +145,22 @@
 	driver appears installed
 	```
 
-12. Recovery order:
+12. Persistent config locations:
+	```text
+	/etc/modprobe.d/
+/etc/udev/rules.d/
+/etc/default/grub
+/etc/modules-load.d/
+	```
+
+	Useful inspection:
+	```bash
+	find /etc/modprobe.d /lib/modprobe.d -iname '*nvidia*'
+	find /etc/udev/rules.d -iname '*nvidia*'
+	grep -i nvidia /etc/default/grub
+	```
+
+13. Recovery order:
 	```text
 	1. verify state
 	2. remove blacklist + udev rules
