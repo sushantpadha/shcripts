@@ -112,9 +112,12 @@ Just commit your `scripts/` folder and the launcher code.
 **GNOME:** Settings → Keyboard → Custom Shortcuts
 ```
 Name: shcripts
-Command: python3 ~/shcripts/launcher/launcher.py
-Shortcut: Super+S (or your choice)
+Command: gnome-terminal -- bash -c 'python3 /home/dietcoke/shcripts/launcher/launcher.py; exec bash'
+Shortcut: Super+Q (or your choice)
 ```
+
+> [!note]
+> It's important to run it in a dedicated terminal window as done using `gnome-terminal` above.
 
 **KDE:** System Settings → Shortcuts → Custom Shortcuts (same command)
 
