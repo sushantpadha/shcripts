@@ -838,8 +838,7 @@ update_drivers() {
 # ==========================================================
 
 usage() {
-cat <<EOF
-
+    cat <<EOF
 $SCRIPT_NAME - NVIDIA Power State Manager
 
 USAGE:
@@ -861,11 +860,10 @@ COMMANDS:
         -h, --help  Show this help message
 
 IMPORTANT:
-  - Most mode changes require reboot.
-  - Run `doctor` to review persistent system state manually!!!
-  - If things become inconsistent:
-      Run as doctor, then reset, then reboot!
-
+- Most mode changes require reboot.
+- Run "doctor" to review persistent system state manually!!!
+- If things become inconsistent:
+    Run as doctor, then reset, then reboot!
 EOF
 }
 
@@ -874,7 +872,6 @@ EOF
 # ==========================================================
 
 main() {
-
     case "${1:-}" in
         -h|--help|help|"")
             usage
