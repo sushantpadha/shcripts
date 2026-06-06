@@ -1,3 +1,6 @@
+#!/bin/bash
+# enable copyq in gnome
+
 # deregister super+v
 # list
 gsettings list-recursively org.gnome.shell.keybindings

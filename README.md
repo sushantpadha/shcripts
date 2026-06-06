@@ -3,7 +3,7 @@
 > Read [this chat](https://claude.ai/chat/246f3a9d-929b-48b4-8124-0eb8fd1a8c50).
 > On how to download and setup google drive and notion backup scripts.
 
-A modern launcher for organizing and running shell scripts. Categorized by folder, tracks run history with last 3 executions, opens scripts in terminal windows, idle notifications via systemd.
+A modern launcher for organizing and running shell and python scripts. Categorized by folder, tracks run history with last 3 executions, opens scripts in terminal windows, idle notifications via systemd.
 
 ## Setup (2 minutes)
 
@@ -14,17 +14,19 @@ python3 launcher/launcher.py
 ```
 
 That's it. The setup script:
-- Installs PyQt5
-- Creates `scripts/` and `logs/` directories
-- Sets up systemd user timer for idle notifications (24h check, hourly reminder)
-- Creates app menu entry
+
+* Installs PyQt5
+* Creates `scripts/` and `logs/` directories
+* Sets up systemd user timer for idle notifications (24h check, hourly reminder)
+* Creates app menu entry
 
 ## Do this
+
 Add keyboard shortcut `Super+B` or something to open the launcher.
 
 ## Directory Structure
 
-```
+```text
 ~/shcripts/
 ├── launcher/               ← the app (don't edit often)
 │   ├── launcher.py
@@ -44,16 +46,13 @@ Add keyboard shortcut `Super+B` or something to open the launcher.
 
 ## Add Your First Script
 
+### Shell
+
 ```bash
 mkdir -p ~/shcripts/scripts/gpu
 cat > ~/shcripts/scripts/gpu/nvidia_disable.sh <<'EOF'
 #!/usr/bin/env bash
-################################################################################
-# Script: nvidia_disable
-# Description: Disable NVIDIA GPU and switch to integrated graphics
-# Author: you
-# Created: 2025-05-25
-################################################################################
+# Disable NVIDIA GPU and switch to integrated graphics
 
 set -euo pipefail
 echo "Disabling NVIDIA..."
@@ -62,32 +61,67 @@ EOF
 chmod +x ~/shcripts/scripts/gpu/nvidia_disable.sh
 ```
 
+### Python
+
+```bash
+mkdir -p ~/shcripts/scripts/gpu
+cat > ~/shcripts/scripts/gpu/nvidia_disable.py <<'EOF'
+#!/usr/bin/env python3
+"""
+Disable NVIDIA GPU and switch to integrated graphics.
+"""
+
+print("Disabling NVIDIA...")
+EOF
+chmod +x ~/shcripts/scripts/gpu/nvidia_disable.py
+```
+
 Restart the launcher — your script appears under the `gpu` category.
 
 ## Script Metadata
 
-The launcher parses the header block of each `.sh` file:
+The launcher intentionally keeps metadata minimal.
+
+### `.sh`
+
+The first actual comment line becomes the description shown in the UI.
+
+Ignored automatically:
+
+* shebangs
+* empty lines
+
+Example:
 
 ```bash
-################################################################################
-# Script: name_here
-# Description: One-line explanation shown in UI
-# Author: your name
-# Created: 2025-05-25
-# Last Modified: 2025-05-25
-################################################################################
+#!/usr/bin/env bash
+# One-line explanation shown in UI
 ```
 
-All optional except **Description**. Click a script in the UI to expand and see full metadata.
+### `.py`
+
+The first line of the module docstring becomes the description shown in the UI.
+
+Example:
+
+```python
+"""
+One-line explanation shown in UI.
+
+Additional notes here.
+"""
+```
+
+Only the first line is displayed in the launcher UI.
 
 ## UI Overview
 
-- **Collapsible folders** — organize by category (gpu/, system/, etc.)
-- **Expandable descriptions** — click script name to see full metadata
-- **Last 3 runs** — status dots (🟢 success, 🔴 failed)
-- **[▶ Run]** button — opens script in new terminal window
-- **[↺ Rescan]** — reload scripts from disk
-- **Idle notifications** — reminds you every hour if you haven't opened app in 24h
+* **Collapsible folders** — organize by category (gpu/, system/, etc.)
+* **Expandable descriptions** — click script name to see metadata
+* **Last 3 runs** — status dots (🟢 success, 🔴 failed)
+* **[▶ Run]** button — opens script in new terminal window
+* **[↺ Rescan]** — reload scripts from disk
+* **Idle notifications** — reminds you every hour if you haven't opened app in 24h
 
 ## Git Setup
 
@@ -101,19 +135,21 @@ git push -u origin main
 ```
 
 Auto-excluded from git:
-- `.history.json` (run metadata)
-- `.lastopen` (idle marker)
-- `logs/` (per-run logs)
+
+* `.history.json` (run metadata)
+* `.lastopen` (idle marker)
+* `logs/` (per-run logs)
 
 Just commit your `scripts/` folder and the launcher code.
 
 ## Hotkey
 
 **GNOME:** Settings → Keyboard → Custom Shortcuts
-```
+
+```text
 Name: shcripts
 Command: gnome-terminal -- bash -c 'python3 /home/dietcoke/shcripts/launcher/launcher.py; exec bash'
-Shortcut: Super+Q (or your choice)
+Shortcut: Super+B
 ```
 
 > [!note]
@@ -124,12 +160,13 @@ Shortcut: Super+Q (or your choice)
 ## For Full Details
 
 See `launcher/README.md` — covers:
-- Detailed UI guide
-- Run history schema
-- Idle notification tuning
-- Terminal detection
-- Troubleshooting
-- Customization (colors, timeouts, history depth)
+
+* Detailed UI guide
+* Run history schema
+* Idle notification tuning
+* Terminal detection
+* Troubleshooting
+* Customization (colors, timeouts, history depth)
 
 ## Quick Commands
 

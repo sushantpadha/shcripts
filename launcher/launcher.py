@@ -123,29 +123,39 @@ def parse_header(path: str) -> dict:
         "last_modified": "",
     }
 
+    suffix = Path(path).suffix.lower()
+
     try:
-        with open(path) as f:
-            lines = f.readlines()
+        text = Path(path).read_text()
 
-        in_block = False
+        if suffix == ".py":
+            import ast
 
-        for line in lines:
-            line = line.rstrip()
+            try:
+                module = ast.parse(text)
+                doc = ast.get_docstring(module)
 
-            if "################################" in line:
-                in_block = not in_block
-                continue
+                if doc:
+                    meta["description"] = doc.strip().splitlines()[0].strip()
 
-            if in_block:
-                for key, field in [
-                    ("# Description:",   "description"),
-                    ("# USAGE:",         "usage"),
-                    ("# Author:",        "author"),
-                    ("# Created:",       "created"),
-                    ("# Last Modified:", "last_modified"),
-                ]:
-                    if line.startswith(key):
-                        meta[field] = line.replace(key, "").strip()
+            except Exception:
+                pass
+
+        elif suffix == ".sh":
+            for line in text.splitlines():
+                stripped = line.strip()
+
+                if not stripped:
+                    continue
+
+                if stripped.startswith("#!"):
+                    continue
+
+                if stripped.startswith("#"):
+                    meta["description"] = stripped.lstrip("#").strip()
+                    break
+
+                break
 
     except Exception:
         pass
@@ -240,6 +250,7 @@ def scan() -> dict[str, list[ScriptMeta]]:
 
     exts = {
         ".sh":  "script",
+        ".py":  "script",
         ".txt": "text",
         ".md":  "text",
     }
@@ -333,22 +344,30 @@ def run_in_terminal(script: ScriptMeta,
     )
 
     start = time.time()
+    
+    runner = {
+        ".sh": "bash",
+        ".py": "python3",
+    }.get(Path(script.path).suffix.lower())
+
+    if not runner:
+        return "unsupported script type"
 
     cmd = (
         f"exec > >(tee {log_file}); "
         f"exec 2>&1; "
         f"echo ''; "
-        f"echo '  ▶  {script.name}"
+        f"echo '  >  {script.name}"
         f"{' [sudo]' if sudo else ''}'; "
         f"echo ''; "
         f"{'sudo ' if sudo else ''}"
-        f"bash {script.path!r}; "
+        f"{runner} {script.path!r}; "
         f"CODE=$?; "
         f"echo $CODE > {tmp_exit}; "
         f"echo ''; "
         f"[ $CODE -eq 0 ] "
-        f"&& echo '  ✓  exit 0' "
-        f"|| echo \"  ✗  exit $CODE\"; "
+        f"&& echo '  +  exit 0' "
+        f"|| echo \"  -  exit $CODE\"; "
         f"echo ''; "
         f"echo 'Press Enter to close...'; "
         f"read"
@@ -520,9 +539,7 @@ class ShcriptsTUI(App):
         root.expand()
 
         if not self.scripts_by_cat:
-            root.add_leaf(
-                "(no files found — add .sh/.txt/.md files)"
-            )
+            root.add_leaf("(no files found - add .sh/.py/.txt/.md files)")
             return
 
         for cat in sorted(self.scripts_by_cat.keys()):
@@ -909,8 +926,7 @@ def main():
         d.mkdir(parents=True, exist_ok=True)
 
     existing = any(
-        p.suffix in [".sh", ".txt", ".md"]
-        for p in SCRIPTS_DIR.rglob("*")
+        p.suffix in [".sh", ".py", ".txt", ".md"] for p in SCRIPTS_DIR.rglob("*")
     )
 
     if not existing:

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
-# sample script — delete me
-echo 'hello from shcripts!'
+# Say ello mate
+
+echo 'oi hughie'
 sleep 1

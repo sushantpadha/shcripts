@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Interactive. Wrapper around rclone. Selective syncing to GDrive.
 
 import hashlib
 import json
