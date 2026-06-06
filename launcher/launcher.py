@@ -917,6 +917,8 @@ class ShcriptsTUI(App):
 # ── Entry ────────────────────────────────────────────────────────────────────
 
 def main():
+    from dotenv import load_dotenv
+    load_dotenv(SHCRIPTS_DIR / ".env")          # load secrets for all child scripts
 
     for d in [
         SHCRIPTS_DIR,
