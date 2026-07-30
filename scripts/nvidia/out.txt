@@ -1,0 +1,160 @@
+
+[2m----------------------------------------------------[0m
+  [2mDetected GPU BDF        [0m [1;36m0000:01:00.0[0m
+[2m    Verify: lspci -D | grep -Ei 'VGA|3D|NVIDIA'[0m
+[2m----------------------------------------------------[0m
+
+  Looks correct? [Y/n]: 
+[1;34m  *[0m Requesting sudo credentials (once for this session)
+
+
+[1m[1;36mMode: OFF[0m
+[2m----------------------------------------------------[0m
+  [2mEffect              [0m  Value
+[2m----------------------------------------------------[0m
+  [2mdesktop GPU         [0m  iGPU (amd/intel)
+  [2mNVIDIA modules      [0m  blacklisted + install-overridden
+  [2mNVIDIA services     [0m  masked
+  [2mruntime PM          [0m  auto
+  [2mpersistence         [0m  yes -- survives reboot
+  [2mrevert with         [0m  nvidia-psm.sh reset
+[2m----------------------------------------------------[0m
+
+[1;33m  ![0m Apply OFF mode?
+  Continue? [y/N]: 
+[1;34m  *[0m Remove stale psm rules/configs
+[2m    $ bash -c 
+            sudo rm -f '/etc/modprobe.d/blacklist-nvidia.conf' '/etc/udev/rules.d/99-nvidia-disable.rules' '/etc/systemd/system/nvidia-power-cap.service' '/etc/systemd/system/nvidia-off-pm.service'
+            sudo udevadm control --reload 2>/dev/null || true
+            sudo systemctl daemon-reload  2>/dev/null || true
+        [0m
+
+[1;34m  *[0m Switch PRIME profile to iGPU
+[2m    $ sudo prime-select intel[0m
+Info: selecting the intel profile
+Updating the initramfs. Please wait for the operation to complete:
+-/|\-/|\-/|\-/|\-/|\-/|\-/|\Done
+
+[1;34m  *[0m Mask NVIDIA services
+[2m    $ bash -c 
+            for s in nvidia-persistenced.service nvidia-powerd.service nvidia-hibernate.service nvidia-resume.service nvidia-suspend.service; do
+                sudo systemctl stop    "$s" 2>/dev/null || true
+                sudo systemctl disable "$s" 2>/dev/null || true
+                sudo systemctl mask    "$s" 2>/dev/null || true
+            done
+        [0m
+
+[1;34m  *[0m Write blacklist config (with install-overrides)
+[2m    $ bash -c true[0m
+
+[1;34m  *[0m Wrote [1m/etc/modprobe.d/blacklist-nvidia.conf[0m -- contents:
+[2m----------------------------------------------------[0m
+[2m    # nvidia-psm: OFF mode[0m
+[2m    # 'install X /bin/false' is stronger than 'blacklist X':[0m
+[2m    # it blocks explicit modprobe calls too, not just automatic loading.[0m
+[2m    blacklist nvidia[0m
+[2m    blacklist nvidia_drm[0m
+[2m    blacklist nvidia_modeset[0m
+[2m    blacklist nvidia_uvm[0m
+[2m    [0m
+[2m    install nvidia /bin/false[0m
+[2m    install nvidia_drm /bin/false[0m
+[2m    install nvidia_modeset /bin/false[0m
+[2m    install nvidia_uvm /bin/false[0m
+[2m----------------------------------------------------[0m
+[1;34m  *[0m Driver not currently bound -- skipping unbind
+
+[1;34m  *[0m Enable runtime PM on GPU (power/control = auto)
+[2m    $ bash -c echo auto | sudo tee '/sys/bus/pci/devices/0000:01:00.0/power/control' >/dev/null[0m
+
+[1;34m  *[0m Enable runtime PM on PCIe bridge (power/control = auto)
+[2m    $ bash -c echo auto | sudo tee '/sys/bus/pci/devices/0000:00:01.1/power/control' >/dev/null || true[0m
+
+[1;34m  *[0m Set autosuspend delay to 0ms
+[2m    $ bash -c echo 0 | sudo tee '/sys/bus/pci/devices/0000:01:00.0/power/autosuspend_delay_ms' >/dev/null || true[0m
+tee: '/sys/bus/pci/devices/0000:01:00.0/power/autosuspend_delay_ms': Input/output error
+
+[1;34m  *[0m Write D3hot PM persistence service
+[2m    $ bash -c true[0m
+
+[1;34m  *[0m Wrote [1m/etc/systemd/system/nvidia-off-pm.service[0m -- contents:
+[2m----------------------------------------------------[0m
+[2m    # nvidia-psm: OFF mode -- force GPU toward D3hot on every boot[0m
+[2m    # Required because ACPI PEP._DSM is broken on this firmware (HP Omen F.32),[0m
+[2m    # preventing the kernel from autonomously gating dGPU power.[0m
+[2m    [Unit][0m
+[2m    Description=NVIDIA dGPU D3hot power gate (nvidia-psm off)[0m
+[2m    After=graphical.target[0m
+[2m    ConditionPathExists=/sys/bus/pci/devices/0000:01:00.0/power/control[0m
+[2m    [0m
+[2m    [Service][0m
+[2m    Type=oneshot[0m
+[2m    RemainAfterExit=yes[0m
+[2m    # Bridge: allow it to power-gate when endpoint is idle[0m
+[2m    ExecStart=/bin/sh -c 'echo auto > /sys/bus/pci/devices/0000:00:01.1/power/control || true'[0m
+[2m    # GPU: allow runtime suspend, fire immediately[0m
+[2m    ExecStart=/bin/sh -c 'echo 0    > /sys/bus/pci/devices/0000:01:00.0/power/autosuspend_delay_ms || true'[0m
+[2m    ExecStart=/bin/sh -c 'echo auto > /sys/bus/pci/devices/0000:01:00.0/power/control || true'[0m
+[2m    [0m
+[2m    [Install][0m
+[2m    WantedBy=graphical.target[0m
+[2m----------------------------------------------------[0m
+
+[1;34m  *[0m Enable D3hot PM service
+[2m    $ bash -c sudo systemctl daemon-reload && sudo systemctl enable nvidia-off-pm.service[0m
+Created symlink /etc/systemd/system/graphical.target.wants/nvidia-off-pm.service → /etc/systemd/system/nvidia-off-pm.service.
+
+[1;34m  *[0m Rebuild initramfs (embeds blacklist)
+[2m    $ sudo update-initramfs -u[0m
+update-initramfs: Generating /boot/initrd.img-6.17.0-35-generic
+
+
+[1m[1;36mInitramfs Sanity Check[0m
+[2m----------------------------------------------------[0m
+  [1;33m[WARN][0m  NVIDIA entries found in initramfs:
+[2m    usr/lib/modules/6.17.0-35-generic/kernel/drivers/hid/hid-nvidia-shield.ko.zst[0m
+[2m    usr/lib/modules/6.17.0-35-generic/kernel/drivers/net/ethernet/nvidia[0m
+[2m    usr/lib/modules/6.17.0-35-generic/kernel/drivers/net/ethernet/nvidia/forcedeth.ko.zst[0m
+[2m    usr/lib/modules/6.17.0-35-generic/kernel/drivers/usb/typec/altmodes/typec_nvidia.ko.zst[0m
+[2m    etc/modprobe.d/blacklist-nvidia.conf[0m
+[2m    etc/modprobe.d/nvidia-graphics-drivers-kms.conf[0m
+[2m    usr/lib/modprobe.d/blacklist-nvidia.conf[0m
+[2m    usr/lib/modprobe.d/nvidia-graphics-drivers.conf[0m
+[2m    usr/lib/modprobe.d/nvidia-kms.conf[0m
+[2m    usr/lib/modprobe.d/nvidia-runtimepm.conf[0m
+
+[1;33m  ![0m This may cause modules to load before blacklist is consulted.
+[1;33m  ![0m If GPU persists after reboot, run: nvidia-psm.sh doctor
+[2m----------------------------------------------------[0m
+  [1;32m[PASS][0m  /etc/modprobe.d/blacklist-nvidia.conf contains all install-override lines.
+[2m----------------------------------------------------[0m
+
+
+[1m[1;36mPRIME Profile Check[0m
+[2m----------------------------------------------------[0m
+  [1;32m[PASS][0m  prime-select query = intel
+[2m----------------------------------------------------[0m
+
+
+[1m[1;36mService State Check[0m
+[2m----------------------------------------------------[0m
+  [2mSERVICE                                        STATE[0m
+[2m----------------------------------------------------[0m
+  [1;33m[WARN][0m  [2mnvidia-persistenced.service                  [0m  masked
+not-found
+  [1;33m[WARN][0m  [2mnvidia-powerd.service                        [0m  masked
+not-found
+  [1;33m[WARN][0m  [2mnvidia-hibernate.service                     [0m  masked
+not-found
+  [1;33m[WARN][0m  [2mnvidia-resume.service                        [0m  masked
+not-found
+  [1;33m[WARN][0m  [2mnvidia-suspend.service                       [0m  masked
+not-found
+[2m----------------------------------------------------[0m
+
+[1;32m  +[0m OFF mode configured. Reboot to fully apply.
+
+
+[2m----------------------------------------------------[0m
+[1;33m  ![0m Reboot required for changes to fully take effect.
+[2m----------------------------------------------------[0m

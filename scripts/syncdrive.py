@@ -84,6 +84,14 @@ TARGETS = [
         "patterns": DOC_PATTERN,
         "use_gitignore": False
     },
+
+    {
+        "keyword": "sem1",
+        "local_path": "/mnt/data/Notes/notes/sem1",
+        "remote_path": "sem1",
+        "patterns": ["*"],
+        "use_gitignore": False
+    }
 ]
 
 # ============================================================
