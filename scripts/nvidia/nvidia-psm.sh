@@ -640,9 +640,10 @@ doctor() {
     local overall_ok=true
 
     check() {
-        # check "label" "badge" "detail"
         printf "  %s  ${DIM}%-30s${RST}  %s\n" "$(_badge "$2")" "$1" "$3"
-        [[ "$2" == "FAIL" ]] && overall_ok=false
+        if [[ "$2" == "FAIL" ]]; then
+            overall_ok=false
+        fi
     }
 
     # PRIME profile
