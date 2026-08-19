@@ -18,7 +18,7 @@ Interactive. Wrapper around rclone. Selective syncing to GDrive.
 - One-shot manual syncs only
 - Dry-run preview before syncing
 - Last 3 sync histories retained
-- Optional .gitignore / glob-pattern based filtering
+- Each target uses either glob-pattern filtering or an rclone filter file
 
 Steps:
 1. Install rclone and run `rclone config`
@@ -89,8 +89,8 @@ TARGETS = [
         "keyword": "sem1",
         "local_path": "/mnt/data/Notes/notes/sem1",
         "remote_path": "sem1",
-        "patterns": ["*"],
-        "use_gitignore": False
+        "patterns": [],
+        "rclone_filter": "sem1.rclone-filter"
     }
 ]
 
@@ -194,12 +194,12 @@ def print_help():
 
         print(
             f"    patterns   : "
-            f"{', '.join(t['patterns'])}"
+            f"{', '.join(t['patterns']) if t['patterns'] else '(none)'}"
         )
 
         print(
-            f"    gitignore  : "
-            f"{t['use_gitignore']}"
+            f"    rclone filter: "
+            f"{t.get('rclone_filter', '(none)')}"
         )
 
         print()
@@ -250,17 +250,29 @@ def build_rclone_command(target):
         "--stats=100ms"
     ]
 
-    for p in target["patterns"]:
-        cmd.extend(["--include", p.strip()])
+    filter_file = target.get("rclone_filter")
 
-    if target.get("use_gitignore", False):
-        gitignore = os.path.join(
+    if filter_file:
+        if target["patterns"]:
+            raise ValueError(
+                f"Target '{target['keyword']}' cannot use both "
+                "patterns and an rclone filter file."
+            )
+
+        filter_path = os.path.join(
             target["local_path"],
-            ".gitignore"
+            filter_file
         )
 
-        if os.path.exists(gitignore):
-            cmd.extend(["--filter-from", gitignore])
+        if not os.path.exists(filter_path):
+            raise FileNotFoundError(
+                f"Rclone filter file not found: {filter_path}"
+            )
+
+        cmd.extend(["--filter-from", filter_path])
+    else:
+        for p in target["patterns"]:
+            cmd.extend(["--include", p.strip()])
 
     return cmd
 
@@ -420,17 +432,29 @@ def preview_changes(target):
         "--differ", differ_file
     ]
 
-    for p in target["patterns"]:
-        cmd.extend(["--include", p.strip()])
+    filter_file = target.get("rclone_filter")
 
-    if target.get("use_gitignore", False):
-        gitignore = os.path.join(
+    if filter_file:
+        if target["patterns"]:
+            raise ValueError(
+                f"Target '{target['keyword']}' cannot use both "
+                "patterns and an rclone filter file."
+            )
+
+        filter_path = os.path.join(
             target["local_path"],
-            ".gitignore"
+            filter_file
         )
 
-        if os.path.exists(gitignore):
-            cmd.extend(["--filter-from", gitignore])
+        if not os.path.exists(filter_path):
+            raise FileNotFoundError(
+                f"Rclone filter file not found: {filter_path}"
+            )
+
+        cmd.extend(["--filter-from", filter_path])
+    else:
+        for p in target["patterns"]:
+            cmd.extend(["--include", p.strip()])
 
     subprocess.run(
         cmd,
