@@ -17,6 +17,30 @@ That's it. The setup script:
 * Sets up systemd user timer for idle notifications (24h check, hourly reminder)
 * Creates app menu entry
 
+## Configuration (.env)
+
+Secrets/config (IPs, usernames, paths) live in a project-wide `.env`, gitignored. Copy the example and fill in:
+
+```bash
+cp .env.example .env
+```
+
+`.env` is split into `###`-demarcated sections: one `global` section for shared config, then one section per script category (matching `scripts/<category>/`). Scripts source it themselves (`set -a; source .env; set +a`), and the launcher also loads it for any script it runs.
+
+```ini
+### global ###
+# shared across all script categories
+
+### app ###
+# minecraft server (scripts/app/*.sh)
+APP_SSH_HOST=1.2.3.4
+APP_SSH_USER=user
+APP_REMOTE_DIR=/home/user/app
+APP_BACKUP_DIR=/mnt/data/backups/mc
+```
+
+Adding a new category's config? Append a new `### <category> ###` section with `<CATEGORY>_*` vars, and update `.env.example` to match.
+
 ## Do this
 
 Add keyboard shortcut `Super+B` or something to open the launcher.
