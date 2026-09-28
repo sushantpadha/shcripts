@@ -60,57 +60,58 @@ echo "  ${WORLD}_nether"
 echo "  ${WORLD}_the_end"
 echo
 
+STEP="checking server is stopped"
+if ssh "$REMOTE" "pgrep -u \"\$(id -u)\" java >/dev/null"; then
+    echo "WARNING: a java process is running on the server. Restoring under a live server corrupts the world."
+    read -rp "Restore anyway? [y/N] " CONFIRM
+    [[ "$CONFIRM" =~ ^[Yy]$ ]] || exit 0
+fi
+
 read -rp "Continue? [y/N] " CONFIRM
 [[ "$CONFIRM" =~ ^[Yy]$ ]] || exit 0
 
-echo "==> Finding backup number..."
-STEP="finding backup number"
-
-declare -i N=0
-
-echo "command is: ssh \"$REMOTE\" \"test -f '$REMOTE_DIR/${WORLD}.bak-$N.tgz'\""
-while ssh "$REMOTE" "test -f '$REMOTE_DIR/${WORLD}.bak-$N.tgz'"; do
-    echo "tried $N"
-    N=$((N+1))
-done
-
-REMOTE_BACKUP="$REMOTE_DIR/${WORLD}.bak-$N.tgz"
-
-echo "==> Moving existing worlds to $REMOTE_BACKUP..."
-STEP="archiving + deleting current worlds on server"
-LEFT="$REMOTE_BACKUP may be incomplete
-current worlds in $REMOTE_DIR may be PARTLY or FULLY DELETED - check before starting server"
-
-ssh "$REMOTE" "
-    tar -czf '$REMOTE_BACKUP' -C '$REMOTE_DIR' \
-        '$WORLD' \
-        '${WORLD}_nether' \
-        '${WORLD}_the_end' 2>/dev/null || true
-
-    rm -rf '$REMOTE_DIR/$WORLD' \
-           '$REMOTE_DIR/${WORLD}_nether' \
-           '$REMOTE_DIR/${WORLD}_the_end'
-"
-
 echo "==> Copying selected backup to server..."
 STEP="copying backup to server"
-LEFT="worlds are DELETED from $REMOTE_DIR, restore NOT done
-old worlds saved in $REMOTE_BACKUP
-partial /tmp/$ARCHIVE may exist"
-
+LEFT="partial /tmp/$ARCHIVE may exist on server - rm it (current worlds untouched)"
 scp "$BACKUP_DIR/$ARCHIVE" "$REMOTE:/tmp/$ARCHIVE"
+ssh "$REMOTE" "tar -tzf '/tmp/$ARCHIVE' >/dev/null"
 
-echo "==> Extracting backup..."
-STEP="extracting backup on server"
-LEFT="worlds in $REMOTE_DIR may be PARTIALLY extracted
-/tmp/$ARCHIVE still on server - rm it
-old worlds saved in $REMOTE_BACKUP"
+echo "==> Finding backup number..."
+STEP="finding backup number"
+N=0
+while ssh "$REMOTE" "test -f '$REMOTE_DIR/${WORLD}.bak-$N.tgz'"; do
+    N=$((N+1))
+done
+REMOTE_BACKUP="$REMOTE_DIR/${WORLD}.bak-$N.tgz"
 
+echo "==> Saving current worlds to $REMOTE_BACKUP..."
+STEP="saving current worlds on server"
+LEFT="$REMOTE_BACKUP may be incomplete - rm it (current worlds untouched)
+/tmp/$ARCHIVE still on server - rm it"
+# only archive dims that exist; set -e so a failed tar stops before any rm
 ssh "$REMOTE" "
-    tar -xzf '/tmp/$ARCHIVE' -C '$REMOTE_DIR'
+    set -e
+    cd '$REMOTE_DIR'
+    dirs=''
+    for d in '$WORLD' '${WORLD}_nether' '${WORLD}_the_end'; do [ -d \"\$d\" ] && dirs=\"\$dirs \$d\"; done
+    if [ -n \"\$dirs\" ]; then
+        tar -czf '$REMOTE_BACKUP' \$dirs
+        tar -tzf '$REMOTE_BACKUP' >/dev/null
+    fi
+"
+
+echo "==> Replacing worlds..."
+STEP="deleting current worlds and extracting backup"
+LEFT="worlds in $REMOTE_DIR may be DELETED or PARTLY extracted
+old worlds saved in $REMOTE_BACKUP (if they existed)
+backup to restore is in /tmp/$ARCHIVE on server"
+ssh "$REMOTE" "
+    set -e
+    cd '$REMOTE_DIR'
+    rm -rf '$WORLD' '${WORLD}_nether' '${WORLD}_the_end'
+    tar -xzf '/tmp/$ARCHIVE'
     rm -f '/tmp/$ARCHIVE'
 "
 
 LEFT=""
-echo "==> Restore complete."
-
+echo "==> Restore complete. Old worlds: $REMOTE_BACKUP"

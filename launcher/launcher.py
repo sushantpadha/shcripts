@@ -63,7 +63,7 @@ def find_editor() -> str:
 
 def find_terminal() -> list[str] | None:
     candidates = [
-        ("gnome-terminal", ["gnome-terminal", "--"]),
+        ("gnome-terminal", ["gnome-terminal", "--wait", "--"]),  # --wait: block until the script ends
         ("konsole",        ["konsole", "-e"]),
         ("xfce4-terminal", ["xfce4-terminal", "-e"]),
         ("xterm",          ["xterm", "-e"]),
@@ -354,7 +354,7 @@ def run_in_terminal(script: ScriptMeta,
         return "unsupported script type"
 
     cmd = (
-        f"exec > >(tee {log_file}); "
+        f"exec > >(tee {str(log_file)!r}); "
         f"exec 2>&1; "
         f"echo ''; "
         f"echo '  >  {script.name}"
@@ -363,7 +363,7 @@ def run_in_terminal(script: ScriptMeta,
         f"{'sudo ' if sudo else ''}"
         f"{runner} {script.path!r}; "
         f"CODE=$?; "
-        f"echo $CODE > {tmp_exit}; "
+        f"echo $CODE $SECONDS > {tmp_exit}; "
         f"echo ''; "
         f"[ $CODE -eq 0 ] "
         f"&& echo '  +  exit 0' "
@@ -383,13 +383,12 @@ def run_in_terminal(script: ScriptMeta,
     def _wait():
         proc.wait()
 
-        exit_code = -1
+        exit_code, duration = -1, time.time() - start
 
         try:
             if tmp_exit.exists():
-                exit_code = int(
-                    tmp_exit.read_text().strip()
-                )
+                code, secs = tmp_exit.read_text().split()
+                exit_code, duration = int(code), float(secs)
                 tmp_exit.unlink()
 
         except Exception:
@@ -399,7 +398,7 @@ def run_in_terminal(script: ScriptMeta,
             history,
             script.path,
             exit_code,
-            time.time() - start,
+            duration,
             str(log_file),
         )
 
