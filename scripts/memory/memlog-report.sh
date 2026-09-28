@@ -1,6 +1,7 @@
 #!/bin/bash
 # Summarise memlog.txt: worst moments, and what happened just before the last reboot.
-LOG="${MEMLOG:-$HOME/shcripts/logs/memlog.txt}"
+SHCRIPTS_DIR="${SHCRIPTS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+LOG="${MEMLOG:-$SHCRIPTS_DIR/logs/memlog.txt}"
 
 [ -s "$LOG" ] || [ -s "$LOG.old" ] || { echo "no log data yet: $LOG"; exit 1; }
 

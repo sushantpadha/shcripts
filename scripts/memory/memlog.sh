@@ -3,7 +3,9 @@
 # Read-only: it only reports, never kills or changes anything.
 # Line: <date> <time>  avail_mb=N swap_mb=N psi=N  top=prog:MB prog:MB ...
 umask 077   # log lists running program names: keep it private
-LOG="${MEMLOG:-$HOME/shcripts/logs/memlog.txt}"
+SHCRIPTS_DIR="${SHCRIPTS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+[ -f "$SHCRIPTS_DIR/.env" ] && { set -a; source "$SHCRIPTS_DIR/.env"; set +a; }   # MEMORY_WARN_MB lives here
+LOG="${MEMLOG:-$SHCRIPTS_DIR/logs/memlog.txt}"
 MAX=$((5 * 1024 * 1024))   # rotate at 5 MB
 
 mkdir -p "$(dirname "$LOG")"
@@ -16,10 +18,10 @@ top=$(ps -eo rss=,comm= | awk '{a[$2]+=$1} END{for(k in a) printf "%d %s\n", a[k
 
 echo "$(date '+%F %T')  avail_mb=$avail swap_mb=$swap psi=$psi  top=$top" >> "$LOG"
 
-# Low-memory popup, at most once per 10 minutes. Keep WARN_MB in sync with memlog-plot.py.
-WARN_MB="${WARN_MB:-1500}"
+# Low-memory popup. Threshold MEMORY_WARN_MB (default 1500), at most once per MEMORY_WARN_COOLDOWN_MIN (default 10). Both in .env.
+WARN_MB="${MEMORY_WARN_MB:-1500}"
 STAMP="${STAMP:-${XDG_RUNTIME_DIR:-/tmp}/memlog-warned}"
-if [ "$avail" -lt "$WARN_MB" ] && { [ ! -f "$STAMP" ] || [ -n "$(find "$STAMP" -mmin +10)" ]; }; then
+if [ "$avail" -lt "$WARN_MB" ] && { [ ! -f "$STAMP" ] || [ -n "$(find "$STAMP" -mmin "+${MEMORY_WARN_COOLDOWN_MIN:-10}")" ]; }; then
   notify-send -u critical "Low memory: ${avail} MB free" "Biggest: ${top%% *}. Close something before it freezes."
   touch "$STAMP"
 fi

@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
-"""Tray icon that toggles memory logging on/off. Runs memlog.sh every 60s while ON."""
+"""Tray icon that toggles memory logging on/off. Runs memlog.sh every MEMORY_INTERVAL_S seconds (default 60) while ON."""
+import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
 from PyQt5.QtWidgets import QAction, QApplication, QMenu, QSystemTrayIcon
 
 HERE = Path(__file__).resolve().parent   # utils/memory
-SH = HERE.parents[1] / "scripts/memory"  # the shell scripts
-LOG = Path.home() / "shcripts/logs/memlog.txt"
+ROOT = Path(os.environ.get("SHCRIPTS_DIR") or HERE.parents[1])
+SH = ROOT / "scripts/memory"  # the shell scripts
+LOG = ROOT / "logs/memlog.txt"
 AUTOSTART = Path.home() / ".config/autostart/memlog.desktop"
-INTERVAL_MS = 60_000
+load_dotenv(ROOT / ".env")
+INTERVAL_MS = int(os.environ.get("MEMORY_INTERVAL_S", 60)) * 1000
+TERMINAL = shlex.split(os.environ.get("MEMORY_TERMINAL", "kitty --hold"))
 
 app = QApplication(sys.argv)
 app.setQuitOnLastWindowClosed(False)
@@ -77,12 +83,12 @@ timer.timeout.connect(snapshot)
 toggle.triggered.connect(flip)
 menu.addAction(toggle)
 menu.addAction("Show report").triggered.connect(
-    lambda: subprocess.Popen(["kitty", "--hold", "bash", str(SH / "memlog-report.sh")]))
+    lambda: subprocess.Popen([*TERMINAL, "bash", str(SH / "memlog-report.sh")]))
 plot_menu = menu.addMenu("Plot")
 for label, hours in [("Last hour", 1), ("Last 6 hours", 6), ("Last 24 hours", 24), ("All data", None)]:
     plot_menu.addAction(label).triggered.connect(
         lambda _checked, h=hours: subprocess.Popen(
-            ["python3", str(HERE / "memlog-plot.py"), *([str(h)] if h else [])]))
+            [sys.executable, str(HERE / "memlog-plot.py"), *([str(h)] if h else [])]))
 menu.addAction("Open log").triggered.connect(
     lambda: subprocess.Popen(["xdg-open", str(LOG)]))
 menu.addSeparator()

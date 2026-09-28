@@ -11,10 +11,14 @@ from pathlib import Path
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
+from dotenv import load_dotenv
 
-LOG = Path(os.environ.get("MEMLOG", Path.home() / "shcripts/logs/memlog.txt"))
-WARN_MB = 1500              # keep in sync with memlog.sh
-GAP = timedelta(minutes=3)  # longer gap = logging was off or the machine slept: break the lines
+ROOT = Path(os.environ.get("SHCRIPTS_DIR") or Path(__file__).resolve().parents[2])
+load_dotenv(ROOT / ".env")
+LOG = Path(os.environ.get("MEMLOG", ROOT / "logs/memlog.txt"))
+WARN_MB = int(os.environ.get("MEMORY_WARN_MB", 1500))   # same var memlog.sh uses
+INTERVAL_S = int(os.environ.get("MEMORY_INTERVAL_S", 60))   # same var the tray uses
+GAP = timedelta(seconds=3 * INTERVAL_S)  # longer gap = logging was off or the machine slept: break the lines
 NPROG = 6
 
 

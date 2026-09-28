@@ -8,5 +8,7 @@ if pgrep -f "$TRAY" >/dev/null; then
   exit 0
 fi
 
-nohup python3 "$TRAY" >/dev/null 2>&1 &
+PY="${SHCRIPTS_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}/.venv/bin/python"
+[ -x "$PY" ] || PY=python3   # no venv yet: system python
+nohup "$PY" "$TRAY" >/dev/null 2>&1 &
 echo "memlog tray started"
