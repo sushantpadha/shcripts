@@ -7,7 +7,7 @@ What each script does: [GLOSSARY.md](GLOSSARY.md). Details live in each script's
 ## Setup
 
 ```bash
-git clone <repo> ~/shcripts     # paths assume ~/shcripts
+git clone https://github.com/sushantpadha/shcripts ~/shcripts     # paths assume ~/shcripts
 bash ~/shcripts/launcher/setup.sh
 python3 ~/shcripts/launcher/launcher.py
 ```

@@ -2,11 +2,10 @@
 
 One line per script. Open the script itself for usage and details.
 
-## scripts/
+## scripts/desktop/
 
-- `syncdrive.py`: sync chosen local folders to Google Drive with rclone. Interactive, shows a dry run first.
 - `enabling-copyq.sh`: bind Super+V to the CopyQ clipboard menu in GNOME.
-- `fzf-copy.sh`: fuzzy-pick a file and copy its full path to the clipboard.
+- `fzf-copy.sh`: fuzzy-pick a file under `~` and copy its full path to the clipboard.
 - `green-adblock.sh`: start Spotify with the spotify-adblock library preloaded.
 
 ## scripts/app/ (Minecraft server)
@@ -23,13 +22,17 @@ One line per script. Open the script itself for usage and details.
 
 ## scripts/nvidia/
 
-- `psm.sh`: turn the NVIDIA GPU off with GRUB kernel args, or set it back to on-demand. Needs sudo and a reboot.
+- `psm.sh`: switch the NVIDIA GPU between fully off and on-demand, or check its state (read-only). Switching needs sudo and a reboot.
 - `doctor.sh`: read-only dump of GPU, driver and power state.
 - `MEREAD.md`: notes on reading GPU power state and switching GPUs.
 
 ## scripts/power/
 
-- `find-power-draw.md`: cheat sheet for finding what drains battery or heats the laptop.
+- `power-draw.sh`: live snapshot of battery draw, CPU clocks and temps, top processes, and whether the NVIDIA GPU is asleep. Read-only. Run with sudo for CPU package watts.
+
+## scripts/sync/
+
+- `syncdrive.py`: sync chosen local folders to Google Drive with rclone. Previews uploads and deletes before each sync. Targets are in `.env`.
 
 ## utils/memory/
 
