@@ -7,11 +7,13 @@ Personal toolbox for one Linux laptop (Ubuntu, GNOME). Small runnable scripts, s
 - `scripts/<category>/`: what the launcher lists. Folder name = category. `.sh` and `.py` run, `.md` and `.txt` open in an editor.
 - `utils/`: helpers the scripts call. Not listed in the launcher.
 - `logs/`: per-run logs. Gitignored.
+- Repo root: `$SHCRIPTS_DIR` if set, else derived from the script location. Never hardcode `~/shcripts`.
+- Python: `.venv` (made by `launcher/setup.sh`). Child Python scripts run with the launcher's interpreter.
 - `.env`: secrets and machine config (IPs, users, paths). Gitignored. Update `.env.example` whenever you add a var. See the README for the section format.
 
 ## Rules
 
-- Secrets and machine-specific values go in `.env`, never in scripts.
+- Secrets and machine-specific values go in `.env`, never in scripts. Tunables too (thresholds, intervals, process or terminal names): read them from `.env` with a default in the script.
 - Keep scripts small and simple. Prefer interactive (run it, then pick from menus or prompts) over flags and arguments, unless arguments clearly fit better.
 - Print readable, colored output unless told otherwise.
 - Never do anything destructive (delete, overwrite, reformat, touch `/etc`, remote `rm`) without saying so first. Scripts must confirm before destructive steps.

@@ -4,15 +4,19 @@ My scripts and system configs for one Linux laptop (Ubuntu, GNOME), with a termi
 
 What each script does: [GLOSSARY.md](GLOSSARY.md). Details live in each script's header.
 
+Some scripts need system tools: `rclone` (syncdrive), `fzf` and `fd-find` plus `wl-clipboard` or `xclip` (fzf-copy), `notify-send` (memory warnings, idle reminder), `kitty` (tray report button, changeable in `.env`).
+
 ## Setup
 
 ```bash
-git clone https://github.com/sushantpadha/shcripts ~/shcripts     # paths assume ~/shcripts
+git clone https://github.com/sushantpadha/shcripts ~/shcripts
 bash ~/shcripts/launcher/setup.sh
-python3 ~/shcripts/launcher/launcher.py
+~/shcripts/.venv/bin/python ~/shcripts/launcher/launcher.py
 ```
 
-`setup.sh` installs the Python deps, adds an app menu entry, and enables the idle reminder timer.
+`setup.sh` creates `.venv` with the Python deps, adds an app menu entry, and enables the idle reminder timer. It finds the repo from its own location, so `~/shcripts` is only a suggestion.
+
+Optional, for your shell: `export SHCRIPTS_DIR="$HOME/shcripts"` in `~/.bashrc`. Scripts use it when set and otherwise work out the repo root themselves. GNOME shortcuts, the app menu and systemd don't read `~/.bashrc`, which is why the fallback exists.
 
 ## Services
 
@@ -31,27 +35,29 @@ scripts/memory/start-memlog-service.sh
 
 ## Configuration
 
-Secrets and machine values (IPs, users, paths) go in `.env`, which is gitignored.
+Secrets, machine values (IPs, users, paths) and tunables go in `.env`, which is gitignored. `.env.example` lists every variable with a placeholder or default.
 
 ```bash
 cp .env.example .env
 ```
 
-`.env` has one `### global ###` section, then one `### <category> ###` section per `scripts/<category>/`, with vars named `<CATEGORY>_*`. The launcher loads `.env` for every script it runs. Scripts also source it themselves, so they work outside the launcher.
+`.env` has one `### global ###` section, then one `### <category> ###` section per `scripts/<category>/`, with vars named `<CATEGORY>_*`. The launcher loads `.env` for every script it runs. Scripts also source it themselves, so they work outside the launcher. Scripts fall back to a default when an optional variable is missing (e.g. `MEMORY_WARN_MB`, `APP_REMOTE_TMP`).
 
 ## Launcher
 
 Scripts go in `scripts/<category>/`. The folder name is the category. `.sh` and `.py` files run in a new terminal. `.md` and `.txt` files open in your editor. The first header comment (`.sh`) or docstring line (`.py`) is shown as the description.
 
+The right panel shows the script path, its description, the last 3 runs (time, duration, exit code) and the latest log path. Run history is kept in `.history.json`, logs in `logs/<category>/`. Both are gitignored.
+
 Keys: `r` run/open, `s` run with sudo, `e` edit, `t` terminal here, `l` latest log, `R` rescan, `q` quit.
 
 ## Hotkey
 
-The launcher is a TUI, so it needs a terminal window. GNOME: Settings → Keyboard → Custom Shortcuts:
+The launcher is a TUI, so it needs a terminal window. GNOME: Settings → Keyboard → Custom Shortcuts (replace `/home/dietcoke` with your home directory; the command doesn't expand `~`):
 
 ```text
 Name:     shcripts
-Command:  gnome-terminal -- python3 /home/dietcoke/shcripts/launcher/launcher.py
+Command:  gnome-terminal -- /home/dietcoke/shcripts/.venv/bin/python /home/dietcoke/shcripts/launcher/launcher.py
 Shortcut: Super+B
 ```
 

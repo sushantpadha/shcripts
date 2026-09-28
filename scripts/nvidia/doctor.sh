@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Read-only NVIDIA / CUDA / driver / Secure Boot diagnosis (no arg = full doctor, "status" = quick)
 set -u
 
 RED="\033[1;31m"
@@ -27,17 +28,15 @@ doctor() {
 
     _hdr "CUDA Toolkit"
     run nvcc --version
-    run bash -c 'apt-cache policy cuda-toolkit-13-0'
+    run bash -c 'dpkg -l "cuda-toolkit-*" 2>/dev/null | grep "^ii" || echo "no cuda-toolkit package installed"'
 
     _hdr "NVIDIA Driver Packages"
     run bash -c 'dpkg -l | grep -E "nvidia|cuda" || true'
     run bash -c '
-        apt-cache policy \
-            nvidia-driver-580-open \
-            nvidia-kernel-common-580 \
-            libnvidia-gl-580 \
-            nvidia-dkms-580-open \
-            cuda-toolkit-13-0
+        pkgs=$(dpkg-query -W -f "\${db:Status-Abbrev} \${binary:Package}\n" \
+            "nvidia-driver-*" "nvidia-dkms-*" "nvidia-kernel-common-*" "libnvidia-gl-*" "cuda-toolkit-*" 2>/dev/null |
+            awk "\$1 == \"ii\" {print \$2}")
+        [ -n "$pkgs" ] && apt-cache policy $pkgs || echo "no nvidia packages installed"
     '
 
     _hdr "NVIDIA Driver"
@@ -68,15 +67,11 @@ doctor() {
     _hdr "NVIDIA Power Management"
     run systemctl status nvidia-powerd --no-pager
     run bash -c '
-        dpkg -S /usr/bin/nvidia-powerd 2>&1 || true
-    '
-    run bash -c '
-        dpkg -L nvidia-kernel-common-580 2>/dev/null |
-            grep -E "powerd|systemd" || true
-    '
-    run bash -c '
-        cat /usr/share/doc/nvidia-kernel-common-580/nvidia-powerd.service \
-            2>/dev/null || true
+        pkg=$(dpkg -S /usr/bin/nvidia-powerd 2>/dev/null | cut -d: -f1)
+        echo "nvidia-powerd owned by: ${pkg:-no package}"
+        [ -n "$pkg" ] || exit 0
+        dpkg -L "$pkg" | grep -E "powerd|systemd"
+        cat "/usr/share/doc/$pkg/nvidia-powerd.service" 2>/dev/null
     '
 
     _hdr "GPU Runtime Power"

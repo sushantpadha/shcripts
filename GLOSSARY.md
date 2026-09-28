@@ -10,21 +10,21 @@ One line per script. Open the script itself for usage and details.
 
 ## scripts/app/ (Minecraft server)
 
-- `backup_server.sh`: copy a world from the server to a local `.tar.gz`. Optional arg: world name (default `world`).
-- `reset_server.sh`: restore a local backup onto the server. The current world is kept on the server as `<world>.bak-N.tgz`.
+- `backup_server.sh`: copy a world from the server to a local `.tar.gz`. Optional arg: world name (default `world`). Assumes the Paper/Spigot layout (`<world>`, `_nether`, `_the_end`); missing folders are skipped.
+- `reset_server.sh`: restore a local backup onto the server, after you confirm the server is stopped. The current worlds are kept on the server as `<world>.bak-N.tgz`. Same Paper/Spigot layout assumption.
 
 ## scripts/memory/
 
-- `memlog.sh`: append one RAM, swap and memory-pressure snapshot to `logs/memlog.txt`. Warns when free RAM drops below 1500 MB. The tray runs it every minute.
+- `memlog.sh`: append one RAM, swap and memory-pressure snapshot to `logs/memlog.txt`. Pops up a warning when free RAM drops below `MEMORY_WARN_MB` (default 1500). The tray runs it every `MEMORY_INTERVAL_S` seconds (default 60).
 - `memlog-report.sh`: summary of the memory log: lowest free RAM, peak swap, last snapshots before a reboot, OOM kills.
 - `start-memlog-service.sh`: start the memory log tray icon.
 - `setup-swap.sh`: one-time setup of an 8 GB `/swapfile` with an fstab entry. Needs sudo.
 
 ## scripts/nvidia/
 
-- `psm.sh`: switch the NVIDIA GPU between fully off and on-demand, or check its state (read-only). Switching needs sudo and a reboot.
-- `doctor.sh`: read-only dump of GPU, driver and power state.
-- `MEREAD.md`: notes on reading GPU power state and switching GPUs.
+- `psm.sh`: menu to switch the NVIDIA GPU between fully off and on-demand, or check its state (read-only, never wakes the GPU). Switching needs sudo and a reboot. Confirms first and backs up every file it touches to `/var/backups/psm/<time>/` with a `RESTORE.sh`.
+- `doctor.sh`: read-only dump of GPU, driver, DKMS, Secure Boot and power state. Wakes the GPU (calls `nvidia-smi`), so use `psm.sh` status for a quiet check.
+- `MEREAD.md`: notes on reading GPU power state, switching GPUs and recovering, including what `psm.sh` writes.
 
 ## scripts/power/
 
@@ -34,7 +34,11 @@ One line per script. Open the script itself for usage and details.
 
 - `syncdrive.py`: sync chosen local folders to Google Drive with rclone. Previews uploads and deletes before each sync. Targets are in `.env`.
 
+## utils/app/
+
+- `common.sh`: helpers shared by `scripts/app/*.sh` (loads `.env`, one reused ssh connection, failure report, free-space check). Sourced, not run.
+
 ## utils/memory/
 
-- `memlog-tray.py`: tray icon to start or stop memory logging, show the report and plots, and toggle autostart.
+- `memlog-tray.py`: tray icon to start or stop memory logging, show the report (in `MEMORY_TERMINAL`) and plots, and toggle autostart.
 - `memlog-plot.py`: plot the memory log. Optional arg: hours to show.
