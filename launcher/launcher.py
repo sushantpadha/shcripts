@@ -696,6 +696,11 @@ class ShcriptsTUI(App):
             "[dim]R[/] rescan"
         )
 
+        lines.append(
+            f"[dim]general info: {SHCRIPTS_DIR / 'GLOSSARY.md'}   "
+            f"details: open the script (e)[/]"
+        )
+
         body.update("\n".join(lines))
 
 

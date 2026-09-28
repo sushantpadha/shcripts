@@ -15,11 +15,11 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 # 1. Python deps
 echo "[1/5] Installing Python dependencies..."
-if ! pip install PyQt5 --break-system-packages -q 2>/dev/null; then
-  echo "✗ Failed to install PyQt5. Try: pip install PyQt5 --break-system-packages"
+if ! pip install textual python-dotenv PyQt5 matplotlib numpy --break-system-packages -q 2>/dev/null; then
+  echo "✗ Failed to install Python deps (textual python-dotenv PyQt5 matplotlib numpy)"
   exit 1
 fi
-echo "  ✓ PyQt5"
+echo "  ✓ Python deps"
 
 # 2. Create directory structure
 echo "[2/5] Creating directory structure..."
@@ -36,7 +36,7 @@ Name=shcripts
 Comment=Script launcher with run history
 Exec=$PYTHON $LAUNCHER_DIR/launcher.py
 Icon=utilities-terminal
-Terminal=false
+Terminal=true
 Type=Application
 Categories=Utility;
 EOF
