@@ -1,52 +1,48 @@
 #!/usr/bin/env bash
+# Install deps into .venv, add an app menu entry, enable the idle reminder timer.
+# Safe to rerun. Writes only under .venv, ~/.local/share/applications, ~/.config/systemd/user.
 set -euo pipefail
 
-LAUNCHER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHON=$(command -v python3)
-
-if [ -z "$PYTHON" ]; then
-  echo "✗ python3 not found. Install it first."
-  exit 1
-fi
-
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  shcripts launcher v2 — setup"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-# 1. Python deps
-echo "[1/5] Installing Python dependencies..."
-if ! pip install textual python-dotenv PyQt5 matplotlib numpy --break-system-packages -q 2>/dev/null; then
-  echo "✗ Failed to install Python deps (textual python-dotenv PyQt5 matplotlib numpy)"
-  exit 1
-fi
-echo "  ✓ Python deps"
-
-# 2. Create directory structure
-echo "[2/5] Creating directory structure..."
-mkdir -p "$HOME/shcripts/scripts"
-mkdir -p "$HOME/shcripts/logs"
-echo "  ✓ ~/shcripts/{scripts,logs}"
-
-# 3. Desktop shortcut
+SHCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LAUNCHER="$SHCRIPTS_DIR/launcher/launcher.py"
+VENV="$SHCRIPTS_DIR/.venv"
+PY="$VENV/bin/python"
+SYSTEMD_DIR="$HOME/.config/systemd/user"
 DESKTOP="$HOME/.local/share/applications/shcripts.desktop"
+
+G="\033[1;32m" R="\033[1;31m" C="\033[1;36m" N="\033[0m"
+step() { echo -e "\n${C}[$1/4]${N} $2"; }
+
+command -v python3 >/dev/null || { echo -e "${R}x${N} python3 not found"; exit 1; }
+echo -e "${C}shcripts setup${N}  ($SHCRIPTS_DIR)"
+
+step 1 "Python environment: $VENV"
+# --system-site-packages: reuse Qt/matplotlib already installed by apt, if any
+python3 -m venv --system-site-packages "$VENV" \
+    || { echo -e "${R}x${N} venv failed. Try: sudo apt install python3-venv"; exit 1; }
+"$PY" -m pip install -q textual python-dotenv PyQt5 matplotlib numpy
+echo -e "  ${G}+${N} textual python-dotenv PyQt5 matplotlib numpy"
+
+step 2 "Folders"
+mkdir -p "$SHCRIPTS_DIR/scripts" "$SHCRIPTS_DIR/logs"
+echo -e "  ${G}+${N} scripts/ logs/"
+
+step 3 "App menu entry: $DESKTOP"
 mkdir -p "$(dirname "$DESKTOP")"
 cat > "$DESKTOP" <<EOF
 [Desktop Entry]
 Name=shcripts
 Comment=Script launcher with run history
-Exec=$PYTHON $LAUNCHER_DIR/launcher.py
+Exec=$PY $LAUNCHER
 Icon=utilities-terminal
 Terminal=true
 Type=Application
 Categories=Utility;
 EOF
-echo "[3/5] Desktop entry: $DESKTOP"
+echo -e "  ${G}+${N} done"
 
-# 4. Systemd user service + timer for idle notifications
-SYSTEMD_DIR="$HOME/.config/systemd/user"
+step 4 "Idle reminder timer (hourly check, reminds after 24 h unused)"
 mkdir -p "$SYSTEMD_DIR"
-
-# Service: calls --check-idle
 cat > "$SYSTEMD_DIR/shcripts-idle.service" <<EOF
 [Unit]
 Description=shcripts idle checker
@@ -54,11 +50,10 @@ After=display-manager.service
 
 [Service]
 Type=oneshot
-ExecStart=$PYTHON $LAUNCHER_DIR/launcher.py --check-idle
+ExecStart=$PY $LAUNCHER --check-idle
 Environment=DISPLAY=:0
+Environment=SHCRIPTS_DIR=$SHCRIPTS_DIR
 EOF
-
-# Timer: runs service every hour
 cat > "$SYSTEMD_DIR/shcripts-idle.timer" <<EOF
 [Unit]
 Description=Run shcripts idle checker hourly
@@ -72,17 +67,9 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
-
-echo "[4/5] Systemd timer installed"
-echo "  Service: $SYSTEMD_DIR/shcripts-idle.service"
-echo "  Timer:   $SYSTEMD_DIR/shcripts-idle.timer"
-
-# 5. Enable and start timer
-echo "[5/5] Enabling systemd timer..."
 systemctl --user daemon-reload
-systemctl --user enable shcripts-idle.timer
-systemctl --user start shcripts-idle.timer
+systemctl --user enable --now shcripts-idle.timer
+echo -e "  ${G}+${N} shcripts-idle.timer enabled"
 
-echo ""
-echo "  ✓ Setup complete. Run: python3 $LAUNCHER_DIR/launcher.py"
-echo "  Config: cp .env.example .env   Scripts: GLOSSARY.md"
+echo -e "\n${G}Done.${N} Run: $PY $LAUNCHER"
+echo "Config: cp .env.example .env   Scripts: GLOSSARY.md   Hotkey: see README"

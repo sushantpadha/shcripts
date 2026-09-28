@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sync chosen local folders to Google Drive with rclone. Interactive, previews every change first.
 
-Targets and the rclone remote live in the `### sync ###` section of ~/shcripts/.env:
+Targets and the rclone remote live in the `### sync ###` section of the repo's .env:
     SYNC_REMOTE=drive-0
     SYNC_TARGET_1="name|/local/dir|remote/dir|*.md,*.pdf"
     SYNC_TARGET_2="name|/local/dir|remote/dir|@my.rclone-filter"
@@ -25,7 +25,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+ROOT = Path(os.environ.get("SHCRIPTS_DIR") or Path(__file__).resolve().parents[2])
+load_dotenv(ROOT / ".env")
 
 BASE_DIR = Path.home() / ".syncdrive"
 STATE_PATH = BASE_DIR / "state.json"

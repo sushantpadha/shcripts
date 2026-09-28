@@ -5,13 +5,14 @@ shcripts — TUI launcher
 Navigate with arrows, run scripts in a disowned terminal, open notes in editor.
 
 Supported:
-    .sh   -> runnable scripts
+    .sh   -> runnable scripts (bash)
+    .py   -> runnable scripts (same interpreter as the launcher)
     .txt  -> notes / cheatsheets
     .md   -> markdown notes / cheatsheets
 
 Usage:
-    python3 launcher.py
-    python3 launcher.py --check-idle
+    .venv/bin/python launcher.py
+    .venv/bin/python launcher.py --check-idle    (used by the idle reminder timer)
 """
 
 import sys, os, json, subprocess, shutil, time
@@ -29,7 +30,8 @@ from textual.reactive import reactive
 
 # ── Config ───────────────────────────────────────────────────────────────────
 
-SHCRIPTS_DIR  = Path.home() / "shcripts"
+# repo root: $SHCRIPTS_DIR if set, else derived from this file (works when the repo is moved)
+SHCRIPTS_DIR  = Path(os.environ.get("SHCRIPTS_DIR") or Path(__file__).resolve().parents[1])
 SCRIPTS_DIR   = SHCRIPTS_DIR / "scripts"
 LOGS_DIR      = SHCRIPTS_DIR / "logs"
 HISTORY_FILE  = SHCRIPTS_DIR / ".history.json"
@@ -347,7 +349,7 @@ def run_in_terminal(script: ScriptMeta,
     
     runner = {
         ".sh": "bash",
-        ".py": "python3",
+        ".py": sys.executable,   # same interpreter (and venv) as the launcher
     }.get(Path(script.path).suffix.lower())
 
     if not runner:
@@ -361,7 +363,7 @@ def run_in_terminal(script: ScriptMeta,
         f"{' [sudo]' if sudo else ''}'; "
         f"echo ''; "
         f"{'sudo ' if sudo else ''}"
-        f"{runner} {script.path!r}; "
+        f"{runner!r} {script.path!r}; "
         f"CODE=$?; "
         f"echo $CODE $SECONDS > {tmp_exit}; "
         f"echo ''; "
@@ -522,7 +524,7 @@ class ShcriptsTUI(App):
         touch_lastopen()
 
         self._build_tree()
-        self._update_status("ready", "idle")
+        self._update_status("", "idle")
 
         self.query_one("#tree").focus()
 
@@ -624,81 +626,30 @@ class ShcriptsTUI(App):
 
         runs = self.history.get(script.path, [])
 
-        lines = []
+        lines = [f"[dim]{script.path}[/]"]
 
         if script.description:
-            lines.append(
-                f"[dim]desc   [/]  "
-                f"{script.description}"
-            )
-
-        if script.usage:
-            lines.append(
-                f"[dim]usage  [/]  "
-                f"{script.usage}"
-            )
-
-        lines.append(
-            f"[dim]type   [/]  {script.kind}"
-        )
-
-        lines.append("")
-        lines.append(
-            f"[dim]path   [/]  "
-            f"[dim]{script.path}[/]"
-        )
-
-        lines.append(
-            f"[dim]editor [/]  {EDITOR}"
-        )
-
-        lines.append(
-            f"[dim]term   [/]  "
-            f"{TERMINAL_CMD[0] if TERMINAL_CMD else 'none'}"
-        )
-
-        lines.append("")
+            lines += ["", script.description]
 
         if runs:
-            lines.append(
-                "[dim]─── last runs ───[/]"
-            )
+            lines += ["", "[dim]last runs[/]"]
 
             for r in runs:
-
-                ts = r.ts.replace("T", " ")
-
-                icon = (
-                    "[green]✓[/]"
-                    if r.exit_code == 0
-                    else "[red]✗[/]"
-                )
-
+                icon = "[green]✓[/]" if r.exit_code == 0 else "[red]✗[/]"
                 lines.append(
-                    f"  {icon}  "
-                    f"{ts}  "
-                    f"{r.duration:.1f}s  "
-                    f"[dim]{r.log_file}[/]"
+                    f"  {icon} {r.ts.replace('T', ' ')}  {r.duration:.1f}s"
                 )
+
+            lines.append(f"  [dim]log: {runs[0].log_file}[/]")
 
         elif script.kind == "script":
-            lines.append("[dim]no runs yet[/]")
+            lines += ["", "[dim]no runs yet[/]"]
 
-        lines.append("")
-
-        lines.append(
-            "[dim]r[/] run/open   "
-            "[dim]s[/] sudo   "
-            "[dim]e[/] edit   "
-            "[dim]t[/] terminal   "
-            "[dim]l[/] logs   "
-            "[dim]R[/] rescan"
-        )
-
-        lines.append(
-            f"[dim]general info: {SHCRIPTS_DIR / 'GLOSSARY.md'}   "
-            f"details: open the script (e)[/]"
-        )
+        lines += [
+            "",
+            f"[dim]overview: {SHCRIPTS_DIR / 'GLOSSARY.md'}  "
+            f"details: edit the script (e)[/]",
+        ]
 
         body.update("\n".join(lines))
 
@@ -921,8 +872,13 @@ class ShcriptsTUI(App):
 # ── Entry ────────────────────────────────────────────────────────────────────
 
 def main():
+    if "--check-idle" in sys.argv:              # timer entry: nothing else may run first
+        check_idle_notify()
+        sys.exit(0)
+
     from dotenv import load_dotenv
     load_dotenv(SHCRIPTS_DIR / ".env")          # load secrets for all child scripts
+    os.environ["SHCRIPTS_DIR"] = str(SHCRIPTS_DIR)   # children inherit it
 
     for d in [
         SHCRIPTS_DIR,
@@ -960,10 +916,6 @@ def main():
             "## Find large files\n"
             "`find . -type f | xargs du -h | sort -h`\n"
         )
-
-    if "--check-idle" in sys.argv:
-        check_idle_notify()
-        sys.exit(0)
 
     app = ShcriptsTUI()
     app.run()
