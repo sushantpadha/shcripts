@@ -64,6 +64,10 @@ The right panel shows the script path, its description, the last 3 runs (time, d
 
 Keys: `r` run/open, `s` run with sudo, `e` edit, `t` terminal here, `l` latest log, `R` rescan, `q` quit.
 
+## Cleaning up
+
+`scripts/maintenance/clean.sh` (also in the launcher) removes generated files: run logs, run history, the idle marker, stale `/tmp` exit files, the memory log and syncdrive history. It shows each group with its size and asks before deleting. Run logs, history, idle marker and exit files default to yes. The memory log and syncdrive history default to no. It never touches `.env`, `.venv` or your scripts.
+
 ## Hotkey
 
 The launcher is a TUI, so it needs a terminal window. GNOME: Settings → Keyboard → Custom Shortcuts (the command runs without a shell, so write out the full path instead of `$SHCRIPTS_DIR`):

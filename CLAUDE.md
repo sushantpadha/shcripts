@@ -7,6 +7,7 @@ Personal toolbox for one Linux laptop (Ubuntu, GNOME). Small runnable scripts, s
 - `scripts/<category>/`: what the launcher lists. Folder name = category. `.sh` and `.py` run, `.md` and `.txt` open in an editor.
 - `utils/`: helpers the scripts call. Not listed in the launcher.
 - `logs/`: per-run logs. Gitignored.
+- Generated files (`logs/`, `.history.json`, `.lastopen`, `~/.syncdrive`) are removed by `scripts/maintenance/clean.sh`. A new generated file or directory means adding it to that script.
 - Repo root: `$SHCRIPTS_DIR` if set, else derived from the script location. Never hardcode `~/shcripts`.
 - Python: `.venv` (made by `launcher/setup.sh`). Child Python scripts run with the launcher's interpreter.
 - `.env`: secrets and machine config (IPs, users, paths). Gitignored. Update `.env.example` whenever you add a var. See the README for the section format.

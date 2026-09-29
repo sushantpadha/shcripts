@@ -18,6 +18,10 @@ One line per script. Open the script itself for usage and details.
 - `backup_server.sh`: copy a world from the server to a local `.tar.gz`. Optional arg: world name (default `world`). Assumes the Paper/Spigot layout (`<world>`, `_nether`, `_the_end`); missing folders are skipped.
 - `reset_server.sh`: restore a local backup onto the server, after you confirm the server is stopped. The current worlds are kept on the server as `<world>.bak-N.tgz`. Same Paper/Spigot layout assumption.
 
+## scripts/maintenance/
+
+- `clean.sh`: delete generated files (run logs, run history, idle marker, stale `/tmp` exit files, memory log, syncdrive history). Asks per group, shows sizes first.
+
 ## scripts/memory/
 
 - `memlog.sh`: append one RAM, swap and memory-pressure snapshot to `logs/memlog.txt`. Pops up a warning when free RAM drops below `MEMORY_WARN_MB` (default 1500). The tray runs it every `MEMORY_INTERVAL_S` seconds (default 60).
