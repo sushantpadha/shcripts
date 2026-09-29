@@ -2,6 +2,11 @@
 
 One line per script. Open the script itself for usage and details.
 
+## launcher/
+
+- `launcher.py`: the TUI. Lists everything under `scripts/`, runs scripts in a new terminal, opens notes in your editor, keeps the last 3 runs per script.
+- `setup.sh`: creates `.venv` with the deps, adds the app menu entry, enables the idle reminder timer. Safe to rerun.
+
 ## scripts/desktop/
 
 - `enabling-copyq.sh`: bind Super+V to the CopyQ clipboard menu in GNOME.

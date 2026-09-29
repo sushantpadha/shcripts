@@ -6,17 +6,30 @@ What each script does: [GLOSSARY.md](GLOSSARY.md). Details live in each script's
 
 Some scripts need system tools: `rclone` (syncdrive), `fzf` and `fd-find` plus `wl-clipboard` or `xclip` (fzf-copy), `notify-send` (memory warnings, idle reminder), `kitty` (tray report button, changeable in `.env`).
 
+## Layout
+
+```text
+launcher/   the TUI launcher and setup.sh
+scripts/    what the launcher lists, one folder per category
+utils/      helpers the scripts call (not listed in the launcher)
+logs/       per-run logs and the memory log (gitignored)
+.env        your config (gitignored), see Configuration
+```
+
 ## Setup
 
 ```bash
-git clone https://github.com/sushantpadha/shcripts ~/shcripts
-bash ~/shcripts/launcher/setup.sh
-~/shcripts/.venv/bin/python ~/shcripts/launcher/launcher.py
+export SHCRIPTS_DIR="$HOME/shcripts"      # any location
+git clone https://github.com/sushantpadha/shcripts "$SHCRIPTS_DIR"
+bash "$SHCRIPTS_DIR/launcher/setup.sh"
+"$SHCRIPTS_DIR/.venv/bin/python" "$SHCRIPTS_DIR/launcher/launcher.py"
 ```
 
-`setup.sh` creates `.venv` with the Python deps, adds an app menu entry, and enables the idle reminder timer. It finds the repo from its own location, so `~/shcripts` is only a suggestion.
+`setup.sh` creates `.venv` with the Python deps, adds an app menu entry, and enables the idle reminder timer. Commands in this README use `$SHCRIPTS_DIR`: put the `export` line in `~/.bashrc`.
 
-Optional, for your shell: `export SHCRIPTS_DIR="$HOME/shcripts"` in `~/.bashrc`. Scripts use it when set and otherwise work out the repo root themselves. GNOME shortcuts, the app menu and systemd don't read `~/.bashrc`, which is why the fallback exists.
+The scripts don't need it. When it's unset they work out the repo root from their own location. GNOME shortcuts, the app menu and systemd don't read `~/.bashrc`, so `setup.sh` writes the path into the files it generates.
+
+Syncdrive also needs an rclone remote: run `rclone config` and name it to match `SYNC_REMOTE` in `.env`.
 
 ## Services
 
@@ -30,7 +43,7 @@ systemctl --user disable --now shcripts-idle.timer
 Memory log tray icon (turn on "Start at login" in its menu to autostart):
 
 ```bash
-scripts/memory/start-memlog-service.sh
+"$SHCRIPTS_DIR/scripts/memory/start-memlog-service.sh"
 ```
 
 ## Configuration
@@ -53,11 +66,11 @@ Keys: `r` run/open, `s` run with sudo, `e` edit, `t` terminal here, `l` latest l
 
 ## Hotkey
 
-The launcher is a TUI, so it needs a terminal window. GNOME: Settings → Keyboard → Custom Shortcuts (replace `/home/dietcoke` with your home directory; the command doesn't expand `~`):
+The launcher is a TUI, so it needs a terminal window. GNOME: Settings → Keyboard → Custom Shortcuts (the command runs without a shell, so write out the full path instead of `$SHCRIPTS_DIR`):
 
 ```text
 Name:     shcripts
-Command:  gnome-terminal -- /home/dietcoke/shcripts/.venv/bin/python /home/dietcoke/shcripts/launcher/launcher.py
+Command:  gnome-terminal -- <SHCRIPTS_DIR>/.venv/bin/python <SHCRIPTS_DIR>/launcher/launcher.py
 Shortcut: Super+B
 ```
 
