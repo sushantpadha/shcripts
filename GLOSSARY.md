@@ -20,7 +20,7 @@ One line per script. Open the script itself for usage and details.
 
 ## scripts/maintenance/
 
-- `clean.sh`: delete generated files (run logs, run history, idle marker, stale `/tmp` exit files, memory log, syncdrive history). Asks per group, shows sizes first.
+- ⚠️ **`clean.sh` (BIG: deletes files on your whole system, not just the repo).** Frees disk space. Optional disk usage explorer (ncdu, baobab, du), then shcripts files, user caches and system junk (APT, crash reports, journal, old snaps). Per section: delete all, select each group, or skip. Shows sizes first and asks before deleting; system steps need sudo. Never touches `.env`, projects, or models in `~/.cache`.
 
 ## scripts/memory/
 

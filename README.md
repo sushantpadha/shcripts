@@ -66,7 +66,13 @@ Keys: `r` run/open, `s` run with sudo, `e` edit, `t` terminal here, `l` latest l
 
 ## Cleaning up
 
-`scripts/maintenance/clean.sh` (also in the launcher) removes generated files: run logs, run history, the idle marker, stale `/tmp` exit files, the memory log and syncdrive history. It shows each group with its size and asks before deleting. Run logs, history, idle marker and exit files default to yes. The memory log and syncdrive history default to no. It never touches `.env`, `.venv` or your scripts.
+`scripts/maintenance/clean.sh` (also in the launcher) frees disk space. It offers `df` plus a disk usage explorer (ncdu, baobab or a plain `du` list), then goes through three sections. For each you pick `a` delete all, `s` select each group (default) or `n` skip:
+
+- **shcripts files:** run logs, run history, idle marker, stale `/tmp` exit files, `__pycache__`, memory log, syncdrive history.
+- **User caches:** thumbnails, pip, uv, npm, Go build, Trash, VS Code, Chrome, Spotify. Apps that may be running default to no.
+- **System (sudo):** APT cache, unused packages, crash reports, old journal logs, old snap revisions.
+
+In select mode each group is shown with its size and deleted only after you say yes. Delete all says yes to every group in the section, including the ones that default to no, and asks once more first, naming them. It never touches `.env`, `.venv`, your projects, or models and data in `~/.cache` (it lists the biggest folders there so you can decide). At the end it prints the free space gained on `/`.
 
 ## Hotkey
 
