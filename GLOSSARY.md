@@ -20,7 +20,7 @@ One line per script. Open the script itself for usage and details.
 
 ## scripts/maintenance/
 
-- ⚠️ **`clean.sh` (BIG: deletes files on your whole system, not just the repo).** Frees disk space. Optional disk usage explorer (ncdu, baobab, du), then shcripts files, user caches and system junk (APT, crash reports, journal, old snaps). Per section: delete all, select each group, or skip. Shows sizes first and asks before deleting; system steps need sudo. Never touches `.env`, projects, or models in `~/.cache`.
+- ⚠️ **`clean.sh` (BIG: deletes files on your whole system, not just the repo; built for this one machine).** Prints saved vs current system info and refuses on another machine. Read-only analysis (where the space is, folders to review by hand), an installed-software overview, then delete groups: shcripts files, user caches, leftovers and duplicates, system junk (APT, old kernels, journal keeping 7 days, rotated logs, old snaps). Every group shows its size first and asks before deleting, and `h` explains it; system steps need sudo. Never touches `.env`, projects, or models in `~/.cache`. `--refresh-header` saves this machine's info into `.env`.
 
 ## scripts/memory/
 
@@ -46,6 +46,12 @@ One line per script. Open the script itself for usage and details.
 ## utils/app/
 
 - `common.sh`: helpers shared by `scripts/app/*.sh` (loads `.env`, one reused ssh connection, failure report, free-space check). Sourced, not run.
+
+## utils/maintenance/
+
+- `analysis.sh`: read-only reports, detail texts and list builders for `clean.sh`. Sourced, not run.
+- `software.sh`: the installed-software overview for `clean.sh`. Sourced, not run.
+- `machine.sh`: the machine banner and check for `clean.sh`; saved info goes to `.env`. Sourced, not run.
 
 ## utils/memory/
 

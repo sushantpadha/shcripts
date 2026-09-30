@@ -7,7 +7,7 @@ Personal toolbox for one Linux laptop (Ubuntu, GNOME). Small runnable scripts, s
 - `scripts/<category>/`: what the launcher lists. Folder name = category. `.sh` and `.py` run, `.md` and `.txt` open in an editor.
 - `utils/`: helpers the scripts call. Not listed in the launcher.
 - `logs/`: per-run logs. Gitignored.
-- `scripts/maintenance/clean.sh` cleans generated files (`logs/`, `.history.json`, `.lastopen`, `~/.syncdrive`), safe caches and system junk. A new generated file or directory means adding it to that script. Only add caches that apps rebuild; never data or models.
+- `scripts/maintenance/clean.sh` checks the saved system info of this machine (`MAINTENANCE_MACHINE_*` in `.env`) and refuses to run elsewhere. After ANY edit to it or to `utils/maintenance/*.sh`, run `bash scripts/maintenance/clean.sh --refresh-header` and mention it in the commit. Its helpers live in `utils/maintenance/`. It cleans generated files (`logs/`, `.history.json`, `.lastopen`, `~/.syncdrive`), safe caches and system junk. A new generated file or directory means adding it to that script. Only add caches that apps rebuild; never data or models.
 - Repo root: `$SHCRIPTS_DIR` if set, else derived from the script location. Never hardcode `~/shcripts`.
 - Python: `.venv` (made by `launcher/setup.sh`). Child Python scripts run with the launcher's interpreter.
 - `.env`: secrets and machine config (IPs, users, paths). Gitignored. Update `.env.example` whenever you add a var. See the README for the section format.

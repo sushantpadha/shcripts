@@ -66,13 +66,17 @@ Keys: `r` run/open, `s` run with sudo, `e` edit, `t` terminal here, `l` latest l
 
 ## Cleaning up
 
-`scripts/maintenance/clean.sh` (also in the launcher) frees disk space. It offers `df` plus a disk usage explorer (ncdu, baobab or a plain `du` list), then goes through three sections. For each you pick `a` delete all, `s` select each group (default) or `n` skip:
+`scripts/maintenance/clean.sh` (also in the launcher) is **written for one machine**. It prints a banner with the saved system info (host, model, OS, kernel, CPU, RAM, GPU, disks, salted checksums) next to the current values, and stops if the host or machine id differ or nothing is saved. The saved info lives in `.env` (`MAINTENANCE_MACHINE_*`), not in the script. Save it, and re-save it after a hardware or OS change or after editing the script, with `bash scripts/maintenance/clean.sh --refresh-header`.
 
-- **shcripts files:** run logs, run history, idle marker, stale `/tmp` exit files, `__pycache__`, memory log, syncdrive history.
-- **User caches:** thumbnails, pip, uv, npm, Go build, Trash, VS Code, Chrome, Spotify. Apps that may be running default to no.
-- **System (sudo):** APT cache, unused packages, crash reports, old journal logs, old snap revisions.
+It then walks through:
 
-In select mode each group is shown with its size and deleted only after you say yes. Delete all says yes to every group in the section, including the ones that default to no, and asks once more first, naming them. It never touches `.env`, `.venv`, your projects, or models and data in `~/.cache` (it lists the biggest folders there so you can decide). At the end it prints the free space gained on `/`.
+1. **Analysis (read-only).** *Where is the space:* filesystems (it notices when home lives in an image file), biggest folders, kernels, packages, build folders, browser data, duplicate fonts, Docker. *Manual pruning and review:* sizes of the folders you check by hand (Downloads, notes, trash on every drive, loose files in home, big files, toolchain versions, other drives). Nothing in this part is ever deleted. After each report: Enter for next, `h` for details, `q` to stop. Then an optional `ncdu` / `baobab` / `du` explorer.
+2. **Installed software overview.** apt packages you installed by hand, grouped (development, system, network, desktop, science), then snap, pip, uv, node, rust, haskell, go, Chrome web apps, and hand-installed programs (`~/.local/bin`, `/usr/local/bin`, `/opt`, AppImages, tool folders, custom launchers). `h` shows the full lists.
+3. **Delete groups**, in four sections: shcripts files, user caches, leftovers and duplicates, system (sudo). You can skip a section. Every group asks before deleting, and at a group's prompt `h` explains it or lists what is inside.
+
+Each group is shown with its size and deleted only after you say yes; there is no delete-everything option. It never touches `.env`, `.venv`, your projects, or models and data in `~/.cache`. At the end it prints the free space gained on `/` and in home.
+
+The folders it reviews, scans and lists are set in `.env` (`MAINTENANCE_*`, see `.env.example`).
 
 ## Hotkey
 
